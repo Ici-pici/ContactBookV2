@@ -1,2 +1,450 @@
-# Auto detect text files and perform LF normalization
-* text=auto
+
+from tkinter import *
+from tkinter import ttk
+import re
+
+#---------------------------------------Functions---------------------------------------#
+
+def show_frame(the_frame):
+    if the_frame == create_screen_frame:
+        name_field.delete(0, END)
+        number_field.delete(0, END)
+        email_field.delete(0, END)
+        name_error.config(text='')
+        number_error.config(text='')
+        email_error.config(text='')
+        successful_creation_message.config(text='')
+    elif the_frame == search_screen_frame:
+        search_field.delete(0, END)
+        search_bar_label.config(text='Search Contact')
+        invalid_name_label.config(text='')
+    elif the_frame == display_screen_frame:
+        search_field_display_fr.delete(0, END)
+        search_error.config(text='')
+        found_name_label.config(text="")
+        found_number_label.config(text="")
+        found_email_label.config(text="")
+    elif the_frame == search_edit_screen_frame:
+        search_edit_field.delete(0, END)
+        invalid_name.config(text='')
+    elif the_frame == edit_screen_frame:
+        saved_changes_label.config(text='')
+        new_name_entry.delete(0, END)
+        new_number_entry.delete(0, END)
+        new_email_entry.delete(0, END)
+        name_error_n2.config(text='')
+        number_error_n2.config(text='')
+        email_error_n2.config(text='')
+    elif the_frame == delete_screen_frame:
+        delete_field.delete(0, END)
+        invalid_name_delete.config(text='')
+        success_message.config(text='')
+    elif the_frame == show_all_screen_frame:
+        for item in table.get_children():
+            table.delete(item)
+        index = 0
+        for contact, data in contact_book.items():
+            table.insert(parent='', index='end', iid=index, text='Parent', value=(contact, data[0], data[1]))
+            index += 1
+    the_frame.tkraise()
+
+
+def search_button_func(the_frame, name, invalid_label, label_name, success_label):
+    #Get The Name
+    get_name = name.get()
+    get_name = get_name.lower()
+    #Cheks if the name presents
+    if get_name in contact_book:
+        invalid_label.config(text="")
+        if the_frame == 'Search':
+            current_number = contact_book[get_name][0]
+            label_name.config(text=current_number)
+        elif the_frame == 'Delete':
+            del contact_book[get_name]
+            success_label.config(text='The Contact Has Been Deleted!')
+        elif the_frame == 'Search Edit':
+            name_for_edit.config(text=get_name)
+            show_frame(edit_screen_frame)
+        elif the_frame == 'Search Display':
+            name_for_edit.config(text=get_name)
+            found_name_label.config(text=get_name)
+            found_number_label.config(text=contact_book[get_name][0])
+            found_email_label.config(text=contact_book[get_name][1])
+    else:
+        if the_frame == 'Search':
+            label_name.config(text='Search Contact')
+        elif the_frame == 'Delete':
+            success_label.config(text='')
+        elif the_frame == 'Search Display':
+            found_name_label.config(text="")
+            found_number_label.config(text="")
+            found_email_label.config(text="")
+        invalid_label.config(text="The name do not presents")
+
+
+def create_button_func(from_frame, created_message, name, number, email, error_name, error_number, error_email):
+    #Clear the successful creation message if is there
+    created_message.config(text='')
+    #Create the Validators
+    name_validator = False
+    number_validator = False
+    email_validator = False
+
+    #Get the info
+    get_name = name.get()
+    get_name = get_name.lower()
+    get_number = number.get()
+    get_email = email.get()
+
+    #Cheks if the data is valid
+    #Strarts with the name
+    if get_name in contact_book:
+        error_name.config(text='The name is already present!')
+    else:
+        error_name.config(text='')
+        name_validator = True
+
+    #Then chek the number with regex
+    phone_pattern = r'^\d{10}$'
+    number_match = re.findall(phone_pattern, get_number)
+    if number_match:
+        error_number.config(text='')
+        number_validator = True
+    else:
+        error_number.config(text='Invalid Phone Number! Only 10 digits needed')
+
+    #Finaly check the email, which can be nothing too
+    email_pattern = r"([A-Za-z0-9]+[.-_])*[A-Za-z0-9]+@[A-Za-z0-9-]+(\.[A-Z|a-z]{2,})+"
+    email_match = re.findall(email_pattern, get_email)
+    if email_match or get_email == "":
+        error_email.config(text='')
+        email_validator = True
+    else:
+        error_email.config(text='Invalid Email Address')
+
+    if name_validator is True and number_validator is True and email_validator is True:
+        # Delete the contact if we opened the function from Edit frame
+        if from_frame == 'EDIT':
+            name_for_delete = search_edit_field.get()
+            name_for_delete = name_for_delete.lower()
+            del contact_book[name_for_delete]
+
+
+        contact_book[get_name] = [get_number, get_email]
+        name.delete(0, END)
+        number.delete(0, END)
+        email.delete(0, END)
+        if from_frame == 'CREATE':
+            created_message.config(text='The Contact Is Created!')
+        else:
+            created_message.config(text='The Changes Are Saved')
+
+
+def close_program():
+    quit()
+
+
+contact_book = {}
+
+#Making The main screen
+main_screen = Tk()
+title = main_screen.title('Contact Book')
+#Making All the frames.
+home_screen_frame = Frame(main_screen)
+search_screen_frame = Frame(main_screen)
+create_screen_frame = Frame(main_screen)
+display_screen_frame = Frame(main_screen)
+edit_screen_frame = Frame(main_screen)
+search_edit_screen_frame = Frame(main_screen)
+delete_screen_frame = Frame(main_screen)
+show_all_screen_frame = Frame(main_screen)
+
+
+for frame in (home_screen_frame, search_screen_frame, create_screen_frame, display_screen_frame, edit_screen_frame,
+              search_edit_screen_frame, delete_screen_frame, show_all_screen_frame):
+    frame.grid(row=0, column=0, sticky='nsew')
+
+#---------------------------------------HOME SCREEN FRAME-------------------------------------------#
+
+#Making the frame design
+home_screen_canvas = Canvas(home_screen_frame, width=1080, height=720)
+home_screen_canvas.pack()
+home_window_template = PhotoImage(file='Contact Book Template.png')
+home_screen_canvas.create_image(540, 360, image=home_window_template)
+
+
+#Making Buttons
+search_button = Button(home_screen_frame, text='Search For Contact', font=('Arial Rounded MT Bold', 20), height=1, width=20, command=lambda: show_frame(search_screen_frame))
+create_button = Button(home_screen_frame, text='Create New Contact', font=('Arial Rounded MT Bold', 20), height=1, width=20, command=lambda: show_frame(create_screen_frame))
+display_button = Button(home_screen_frame, text='Display Contact', font=('Arial Rounded MT Bold', 20), height=1, width=20, command=lambda: show_frame(display_screen_frame))
+edit_button = Button(home_screen_frame, text='Edit Contact', font=('Arial Rounded MT Bold', 20), height=1, width=20, command=lambda: show_frame(search_edit_screen_frame))
+delete_button = Button(home_screen_frame, text='Delete Contact', font=('Arial Rounded MT Bold', 20), height=1, width=20, command=lambda: show_frame(delete_screen_frame))
+show_all_button = Button(home_screen_frame, text='Show All Contacts', font=('Arial Rounded MT Bold', 20), height=1, width=20, command=lambda: show_frame(show_all_screen_frame))
+close_button = Button(home_screen_frame, text='Close Program', font=('Arial Rounded MT Bold', 20), height=1, width=20, command=close_program)
+
+#Adds Buttons to Window
+home_screen_canvas.create_window(300, 230, window=search_button)
+home_screen_canvas.create_window(300, 300, window=create_button)
+home_screen_canvas.create_window(300, 370, window=display_button)
+home_screen_canvas.create_window(300, 440, window=edit_button)
+home_screen_canvas.create_window(300, 510, window=delete_button)
+home_screen_canvas.create_window(300, 580, window=show_all_button)
+home_screen_canvas.create_window(300, 650, window=close_button)
+
+
+#--------------------------------------------SEARCH MENU-------------------------------------------------------------#
+
+#Making the frame design
+search_screen_canvas = Canvas(search_screen_frame, width=1080, height=720)
+search_screen_canvas.pack()
+search_window_template = PhotoImage(file='Contact Book Template.png')
+search_screen_canvas.create_image(540, 360, image=home_window_template)
+
+#Making the search bar
+search_field = Entry(search_screen_frame, font=('Arial Rounded MT Bold', 20), width=25)
+search_screen_canvas.create_window(300, 400, window=search_field)
+#Making the search bar label
+search_bar_label = Label(search_screen_frame, text='Search Contact', font=('Arial Rounded MT Bold', 40), bg="#dfeafe", fg='#ca5d5d')
+search_screen_canvas.create_window(300, 300, window=search_bar_label)
+#Making the invalid name message
+invalid_name_label = Label(search_screen_frame, font=('Arial Rounded MT Bold', 13), bg="#dfeafe", fg='#ca5d5d')
+search_screen_canvas.create_window(205, 365, window=invalid_name_label)
+#Making search button
+search_button_n2 = Button(search_screen_frame, text='Search', font=('Arial Rounded MT Bold', 20), command=lambda: search_button_func('Search', search_field, invalid_name_label, search_bar_label, None))
+search_screen_canvas.create_window(300, 500, window=search_button_n2)
+back_button = Button(search_screen_frame, text='Back', font=('Arial Rounded MT Bold', 20), height=1, width=10, command=lambda: show_frame(home_screen_frame))
+search_screen_canvas.create_window(890, 660, window=back_button)
+
+#--------------------------------------------CREATE CONTACT FRAME--------------------------------------------------#
+
+#Making the frame design
+create_screen_canvas = Canvas(create_screen_frame, width=1080, height=720)
+create_screen_canvas.pack()
+create_window_template = PhotoImage(file='Contact Book Template.png')
+create_screen_canvas.create_image(540, 360, image=home_window_template)
+
+#Creating the labels
+name_label = Label(create_screen_frame, text="*Name:", font=('Arial Rounded MT Bold', 20), bg="#dfeafe", fg='#ca5d5d')
+number_label = Label(create_screen_frame, text='*Phone Number:', font=('Arial Rounded MT Bold', 20), bg="#dfeafe", fg='#ca5d5d')
+email_label = Label(create_screen_frame, text='Email Address:', font=('Arial Rounded MT Bold', 20), bg="#dfeafe", fg='#ca5d5d')
+create_screen_canvas.create_window(140, 200, window=name_label)
+create_screen_canvas.create_window(195, 330, window=number_label)
+create_screen_canvas.create_window(200, 460, window=email_label)
+
+#Create the type bars
+name_field = Entry(create_screen_frame, font=('Arial Rounded MT Bold', 20), width=25)
+number_field = Entry(create_screen_frame, font=('Arial Rounded MT Bold', 20), width=25)
+email_field = Entry(create_screen_frame, font=('Arial Rounded MT Bold', 20), width=25)
+create_screen_canvas.create_window(300, 270, window=name_field)
+create_screen_canvas.create_window(300, 400, window=number_field)
+create_screen_canvas.create_window(300, 530, window=email_field)
+
+#Create 'Create' Button
+create_button = Button(create_screen_frame, text='Create', font=('Arial Rounded MT Bold', 20), command=lambda: create_button_func('CREATE', successful_creation_message, name_field, number_field, email_field, name_error, number_error, email_error))
+create_screen_canvas.create_window(285, 630, window=create_button)
+#Create back button
+back_button = Button(create_screen_frame, text='Back', font=('Arial Rounded MT Bold', 20), height=1, width=10, command=lambda: show_frame(home_screen_frame))
+create_screen_canvas.create_window(890, 660, window=back_button)
+
+#Create Error Messages
+name_error = Label(create_screen_frame, font=('Arial Rounded MT Bold', 13), bg="#dfeafe", fg='#ca5d5d')
+number_error = Label(create_screen_frame, font=('Arial Rounded MT Bold', 13), bg="#dfeafe", fg='#ca5d5d')
+email_error = Label(create_screen_frame, font=('Arial Rounded MT Bold', 13), bg="#dfeafe", fg='#ca5d5d')
+create_screen_canvas.create_window(219, 235, window=name_error)
+create_screen_canvas.create_window(285, 365, window=number_error)
+create_screen_canvas.create_window(193, 495, window=email_error)
+
+#Create Label for successful creation
+successful_creation_message = Label(create_screen_frame, font=('Arial Rounded MT Bold', 15), bg="#dfeafe", fg='#ca5d5d')
+create_screen_canvas.create_window(280, 575, window=successful_creation_message)
+
+
+#----------------------------------------------DISPLAY FRAME--------------------------------------------#
+
+#Making the frame design
+display_screen_canvas = Canvas(display_screen_frame, width=1080, height=720)
+display_screen_canvas.pack()
+display_window_template = PhotoImage(file='Contact Book Template.png')
+display_screen_canvas.create_image(540, 360, image=home_window_template)
+
+#Making the search bar with search label
+search_field_display_fr = Entry(display_screen_frame, font=('Arial Rounded MT Bold', 20), width=25)
+display_screen_canvas.create_window(250, 260, window=search_field_display_fr)
+
+search_label = Label(display_screen_frame, text='Search Contact', font=('Arial Rounded MT Bold', 25), bg="#dfeafe", fg='#ca5d5d')
+display_screen_canvas.create_window(175, 190, window=search_label)
+
+#Making the error message
+search_error = Label(display_screen_frame, font=('Arial Rounded MT Bold', 10), bg="#dfeafe", fg='#ca5d5d')
+display_screen_canvas.create_window(135, 230, window=search_error)
+
+#Making search button
+search_button_n3 = Button(display_screen_frame, text='Search', font=('Arial Rounded MT Bold', 18), command=lambda: search_button_func('Search Display', search_field_display_fr, search_error, None, None))
+display_screen_canvas.create_window(250, 320, window=search_button_n3)
+
+#Making display pattern
+display_name_label = Label(display_screen_frame, text='Name:', font=('Arial Rounded MT Bold', 20), bg="#dfeafe", fg='#ca5d5d')
+display_number_label = Label(display_screen_frame, text='Phone Number:', font=('Arial Rounded MT Bold', 20), bg="#dfeafe", fg='#ca5d5d')
+display_email_label = Label(display_screen_frame, text='Email Address:', font=('Arial Rounded MT Bold', 20), bg="#dfeafe", fg='#ca5d5d')
+display_screen_canvas.create_window(100, 400, window=display_name_label)
+display_screen_canvas.create_window(159, 470, window=display_number_label)
+display_screen_canvas.create_window(153, 540, window=display_email_label)
+
+found_name_label = Label(display_screen_frame, font=('Arial Rounded MT Bold', 20), bg="#dfeafe", fg='#ca5d5d')
+found_number_label = Label(display_screen_frame, font=('Arial Rounded MT Bold', 20), bg="#dfeafe", fg='#ca5d5d')
+found_email_label = Label(display_screen_frame, font=('Arial Rounded MT Bold', 20), bg="#dfeafe", fg='#ca5d5d')
+
+
+display_screen_canvas.create_window(500, 400, window=found_name_label)
+display_screen_canvas.create_window(500, 470, window=found_number_label)
+display_screen_canvas.create_window(500, 540, window=found_email_label)
+
+#Create back button
+back_button = Button(display_screen_frame, text='Back', font=('Arial Rounded MT Bold', 20), height=1, width=10, command=lambda: show_frame(home_screen_frame))
+display_screen_canvas.create_window(890, 660, window=back_button)
+
+#Create Edit Button
+edit_button = Button(display_screen_frame, text='Edit', font=('Arial Rounded MT Bold', 20), height=1, width=10, command= lambda: show_frame(edit_screen_frame))
+display_screen_canvas.create_window(370, 630, window=edit_button)
+
+
+
+
+#------------------------------------------SEARCH EDIT FRAME-------------------------------------------------------#
+
+#Making the frame design
+search_edit_screen_canvas = Canvas(search_edit_screen_frame, width=1080, height=720)
+search_edit_screen_canvas.pack()
+search_edit_window_template = PhotoImage(file='Contact Book Template.png')
+search_edit_screen_canvas.create_image(540, 360, image=home_window_template)
+
+#Making the search bar
+search_edit_field = Entry(search_edit_screen_frame, font=('Arial Rounded MT Bold', 20), width=25)
+search_edit_screen_canvas.create_window(300, 400, window=search_edit_field)
+#Making the search bar label
+search_edit_bar_label = Label(search_edit_screen_frame, text='Search Contact', font=('Arial Rounded MT Bold', 40), bg="#dfeafe", fg='#ca5d5d')
+search_edit_screen_canvas.create_window(300, 300, window=search_edit_bar_label)
+#Making the invalid name message
+invalid_name = Label(search_edit_screen_frame, font=('Arial Rounded MT Bold', 13), bg="#dfeafe", fg='#ca5d5d')
+search_edit_screen_canvas.create_window(205, 365, window=invalid_name)
+
+
+#Making search button
+search_button_n3 = Button(search_edit_screen_frame, text='Search', font=('Arial Rounded MT Bold', 20), command=lambda: search_button_func('Search Edit', search_edit_field, invalid_name, None, None))
+search_edit_screen_canvas.create_window(300, 500, window=search_button_n3)
+back_button = Button(search_edit_screen_frame, text='Back', font=('Arial Rounded MT Bold', 20), height=1, width=10, command=lambda: show_frame(home_screen_frame))
+search_edit_screen_canvas.create_window(890, 660, window=back_button)
+
+
+#------------------------------------------------EDIT SCREEN-----------------------------------------------------#
+
+#Making the frame design
+edit_screen_canvas = Canvas(edit_screen_frame, width=1080, height=720)
+edit_screen_canvas.pack()
+edit_window_template = PhotoImage(file='Contact Book Template.png')
+edit_screen_canvas.create_image(540, 360, image=home_window_template)
+
+#Create back button
+back_button = Button(edit_screen_frame, text='Back', font=('Arial Rounded MT Bold', 20), height=1, width=10, command=lambda: show_frame(search_edit_screen_frame))
+edit_screen_canvas.create_window(890, 660, window=back_button)
+
+
+#Create template
+
+
+name_for_edit = Label(edit_screen_frame, font=('Arial Rounded MT Bold', 30), bg="#dfeafe", fg='#ca5d5d')
+new_name_label = Label(edit_screen_frame, text='New Name:', font=('Arial Rounded MT Bold', 20), bg="#dfeafe", fg='#ca5d5d')
+new_number_label = Label(edit_screen_frame, text='New Number:', font=('Arial Rounded MT Bold', 20), bg="#dfeafe", fg='#ca5d5d')
+new_email_label = Label(edit_screen_frame, text='New Email Address:', font=('Arial Rounded MT Bold', 20), bg="#dfeafe", fg='#ca5d5d')
+
+
+
+edit_screen_canvas.create_window(400, 270, window=name_for_edit)
+edit_screen_canvas.create_window(115, 370, window=new_name_label)
+edit_screen_canvas.create_window(130, 457, window=new_number_label)
+edit_screen_canvas.create_window(172, 540, window=new_email_label)
+
+
+new_name_entry = Entry(edit_screen_frame, font=('Arial Rounded MT Bold', 17), width=30)
+new_number_entry = Entry(edit_screen_frame, font=('Arial Rounded MT Bold', 17), width=28)
+new_email_entry = Entry(edit_screen_frame, font=('Arial Rounded MT Bold', 17), width=22)
+edit_screen_canvas.create_window(417, 370, window=new_name_entry)
+edit_screen_canvas.create_window(431, 457, window=new_number_entry)
+edit_screen_canvas.create_window(473, 540, window=new_email_entry)
+
+
+save_button = Button(edit_screen_frame, text="Save", font=('Arial Rounded MT Bold', 20), height=1, width=10, command=lambda: create_button_func('EDIT', saved_changes_label, new_name_entry, new_number_entry, new_email_entry, name_error_n2, number_error_n2, email_error_n2))
+edit_screen_canvas.create_window(400, 660, window=save_button)
+saved_changes_label = Label(edit_screen_frame, font=('Arial Rounded MT Bold', 17), bg="#dfeafe", fg='#ca5d5d')
+edit_screen_canvas.create_window(400, 595, window=saved_changes_label)
+
+
+
+#Create Error Messages
+name_error_n2 = Label(edit_screen_frame, font=('Arial Rounded MT Bold', 11), bg="#dfeafe", fg='#ca5d5d')
+number_error_n2 = Label(edit_screen_frame, font=('Arial Rounded MT Bold', 11), bg="#dfeafe", fg='#ca5d5d')
+email_error_n2 = Label(edit_screen_frame, font=('Arial Rounded MT Bold', 11), bg="#dfeafe", fg='#ca5d5d')
+edit_screen_canvas.create_window(315, 340, window=name_error_n2)
+edit_screen_canvas.create_window(400, 427, window=number_error_n2)
+edit_screen_canvas.create_window(400, 510, window=email_error_n2)
+
+
+
+#------------------------------------------------DELETE FRAME-------------------------------------------------------#
+
+
+#Making the frame design
+delete_screen_canvas = Canvas(delete_screen_frame, width=1080, height=720)
+delete_screen_canvas.pack()
+delete_window_template = PhotoImage(file='Contact Book Template.png')
+delete_screen_canvas.create_image(540, 360, image=home_window_template)
+
+#Making the search bar
+delete_field = Entry(delete_screen_frame, font=('Arial Rounded MT Bold', 20), width=25)
+delete_screen_canvas.create_window(300, 400, window=delete_field)
+#Making the search bar label
+delete_bar_label = Label(delete_screen_frame, text='Delete Contact', font=('Arial Rounded MT Bold', 40), bg="#dfeafe", fg='#ca5d5d')
+delete_screen_canvas.create_window(300, 300, window=delete_bar_label)
+#Making the invalid name message
+invalid_name_delete = Label(delete_screen_frame, font=('Arial Rounded MT Bold', 13), bg="#dfeafe", fg='#ca5d5d')
+delete_screen_canvas.create_window(205, 365, window=invalid_name_delete)
+#Making the success message
+success_message = Label(delete_screen_frame, font=('Arial Rounded MT Bold', 13), bg="#dfeafe", fg='#ca5d5d')
+delete_screen_canvas.create_window(300, 450, window=success_message)
+#Making search button
+search_button_n4 = Button(delete_screen_frame, text='Search', font=('Arial Rounded MT Bold', 20), command=lambda: search_button_func('Delete', delete_field, invalid_name_delete, None, success_message))
+delete_screen_canvas.create_window(300, 500, window=search_button_n4)
+back_button = Button(delete_screen_frame, text='Back', font=('Arial Rounded MT Bold', 20), height=1, width=10, command=lambda: show_frame(home_screen_frame))
+delete_screen_canvas.create_window(890, 660, window=back_button)
+
+
+#--------------------------------------------------SHOW ALL FRAME------------------------------------------------------3
+
+#Making the frame design
+show_all_screen_canvas = Canvas(show_all_screen_frame, width=1080, height=720)
+show_all_screen_canvas.pack()
+show_all_window_template = PhotoImage(file='Contact Book Template.png')
+show_all_screen_canvas.create_image(540, 360, image=home_window_template)
+
+#Making The Label
+show_all_label = Label(show_all_screen_frame, text='All Contacts', font=('Arial Rounded MT Bold', 40), bg="#dfeafe", fg='#ca5d5d')
+show_all_screen_canvas.create_window(330, 280, window=show_all_label)
+
+
+#Making the table
+table = ttk.Treeview(show_all_screen_frame, columns=(1, 2, 3), show='headings', height='15')
+table.place(x=35, y=350)
+
+table.heading(1, text='Name')
+table.heading(2, text='Number')
+table.heading(3, text='Email Address')
+
+
+
+back_button = Button(show_all_screen_frame, text='Back', font=('Arial Rounded MT Bold', 20), height=1, width=10, command=lambda: show_frame(home_screen_frame))
+show_all_screen_canvas.create_window(890, 660, window=back_button)
+
+
+#The mainloop and the start of the program
+show_frame(home_screen_frame)
+main_screen.mainloop()
